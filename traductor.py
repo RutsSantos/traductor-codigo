@@ -5,20 +5,28 @@ from JavaParser import JavaParser
 from JavaParserListener import JavaParserListener
 import tkinter as tk
 from tkinter import scrolledtext
+from antlr4.tree.Tree import TerminalNodeImpl
 
+"""
+Rut Santos, 2-17-1270.
+
+Traductor de código Java a javascript en Python, usando la libreria Antlr4 que tiene el
+parser y lexer del lenguaje java. Con tkinter realizo la interfaz gráfica.
+
+"""
 class JavaToJsListener(JavaParserListener):
     def __init__(self):
         self.js_code = ""
 
     def enterClassDeclaration(self, ctx: JavaParser.ClassDeclarationContext):
-        class_name = ctx.IDENTIFIER().getText()
+        class_name = ctx.identifier().getText()
         self.js_code += f"class {class_name} {{\n"
 
     def exitClassDeclaration(self, ctx: JavaParser.ClassDeclarationContext):
         self.js_code += "}\n"
 
     def enterMethodDeclaration(self, ctx: JavaParser.MethodDeclarationContext):
-        method_name = ctx.IDENTIFIER().getText()
+        method_name = ctx.identifier().getText()
         self.js_code += f"  {method_name}() {{\n"
 
     def exitMethodDeclaration(self, ctx: JavaParser.MethodDeclarationContext):
@@ -26,8 +34,17 @@ class JavaToJsListener(JavaParserListener):
 
     def enterStatement(self, ctx: JavaParser.StatementContext):
         if ctx.getChild(0).getText() == "System.out.println":
-            expr = ctx.expression().getText()
+            expr = ctx.expression(0).getText()
             self.js_code += f"    console.log({expr});\n"
+
+def print_tree(node, level=0):
+    indent = "  " * level
+    if isinstance(node, TerminalNodeImpl):
+        print(f"{indent}{node.getText()}")
+    else:
+        print(f"{indent}{node.__class__.__name__}")
+        for child in node.children:
+            print_tree(child, level + 1)
 
 def translate_java_to_js(java_code):
     input_stream = InputStream(java_code)
@@ -35,6 +52,8 @@ def translate_java_to_js(java_code):
     stream = CommonTokenStream(lexer)
     parser = JavaParser(stream)
     tree = parser.compilationUnit()
+    
+    print_tree(tree)
     
     js_listener = JavaToJsListener()
     walker = ParseTreeWalker()
